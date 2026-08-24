@@ -1,0 +1,26 @@
+{
+  "name": "promofamily-web",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "prisma db push --accept-data-loss && next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "next": "16.2.2",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "dotenv": "^17.4.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.2",
+    "prisma": "^6.19.3"
+  }
+}
