@@ -93,7 +93,7 @@ export default async function Home() {
                 </div>
 
                 <div className="deal-buttons">
-                  <a href={deal.affiliateLink || '#'} target="_blank" rel="noopener noreferrer" className="deal-button">
+                  <a href={`/go/${deal.id}`} target="_blank" rel="noopener noreferrer" className="deal-button">
                     <span>Ver Oferta</span>
                     <span>🛒</span>
                   </a>

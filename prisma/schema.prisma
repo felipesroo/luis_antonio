@@ -22,6 +22,7 @@ model Deal {
   imageUrl      String?
   content       String?
   store         String   @default("Mercado Livre")
+  clicks        Int      @default(0)
   createdAt     DateTime @default(now())
 
   @@map("ofertastop")

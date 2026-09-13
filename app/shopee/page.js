@@ -100,7 +100,7 @@ export default async function ShopeePage() {
                 </div>
 
                 <div className="deal-buttons">
-                  <a href={deal.affiliateLink || '#'} target="_blank" rel="noopener noreferrer" className="deal-button">
+                  <a href={`/go/${deal.id}`} target="_blank" rel="noopener noreferrer" className="deal-button">
                     <span>Comprar na Shopee</span>
                     <span>🛒</span>
                   </a>
