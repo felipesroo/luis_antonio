@@ -9,7 +9,7 @@ export default async function Home() {
   limitDate.setDate(limitDate.getDate() - 3);
 
   // Busca as ofertas dos últimos 3 dias (limite de 50 para performance)
-  const deals = await prisma.deal.findMany({
+  let deals = await prisma.deal.findMany({
     where: {
       createdAt: {
         gte: limitDate,
@@ -21,15 +21,32 @@ export default async function Home() {
     take: 50
   });
 
+  let isFallback = false;
+
+  // Fallback Inteligente: se houver poucas ofertas recentes (< 8), busca as últimas do catálogo
+  if (deals.length < 8) {
+    const fallbackDeals = await prisma.deal.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 50
+    });
+    if (fallbackDeals.length > 0) {
+      deals = fallbackDeals;
+      isFallback = true;
+    }
+  }
+
   return (
     <div>
       <div className="section-header">
         <h1 className="section-title">
           <span>🔥</span>
-          <span>Últimas Ofertas & Achadinhos</span>
+          <span>{isFallback ? 'Achadinhos & Ofertas em Destaque' : 'Últimas Ofertas & Achadinhos'}</span>
         </h1>
         <span className="section-badge">
-          {deals.length} {deals.length === 1 ? 'oferta verificada' : 'ofertas verificadas'}
+          {deals.length} {deals.length === 1 ? 'oferta ativa' : 'ofertas ativas'}
+          {isFallback && ' (Catálogo)'}
         </span>
       </div>
       

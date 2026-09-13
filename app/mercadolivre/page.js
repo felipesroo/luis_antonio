@@ -11,7 +11,7 @@ export default async function MercadoLivrePage() {
   const limitDate = new Date();
   limitDate.setDate(limitDate.getDate() - 3);
 
-  const deals = await prisma.deal.findMany({
+  let deals = await prisma.deal.findMany({
     where: {
       store: 'Mercado Livre',
       createdAt: {
@@ -24,18 +24,38 @@ export default async function MercadoLivrePage() {
     take: 50
   });
 
+  let isFallback = false;
+
+  // Fallback Inteligente: se houver poucas ofertas recentes (< 8), busca as últimas do catálogo ML
+  if (deals.length < 8) {
+    const fallbackDeals = await prisma.deal.findMany({
+      where: {
+        store: 'Mercado Livre'
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 50
+    });
+    if (fallbackDeals.length > 0) {
+      deals = fallbackDeals;
+      isFallback = true;
+    }
+  }
+
   return (
     <div>
       <div className="section-header">
         <h1 className="section-title">
           <span>💛</span>
-          <span>Achadinhos Mercado Livre</span>
+          <span>{isFallback ? 'Achadinhos Mercado Livre em Destaque' : 'Achadinhos Mercado Livre'}</span>
           <span className="deal-store-badge store-ml" style={{ position: 'relative', top: 0, left: 0 }}>
             Mercado Livre
           </span>
         </h1>
         <span className="section-badge">
           {deals.length} {deals.length === 1 ? 'oferta ativa' : 'ofertas ativas'}
+          {isFallback && ' (Catálogo)'}
         </span>
       </div>
       
