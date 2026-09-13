@@ -2,6 +2,11 @@ import { prisma } from "../../lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Ofertas Shopee - ofertasTOP.shop",
+  description: "Os melhores achadinhos e cupons de desconto da Shopee selecionados pelo ofertasTOP.shop.",
+};
+
 export default async function ShopeePage() {
   const limitDate = new Date();
   limitDate.setDate(limitDate.getDate() - 3);
@@ -21,37 +26,47 @@ export default async function ShopeePage() {
 
   return (
     <div>
-      <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        Ofertas Shopee <span className="deal-store-badge store-shopee" style={{ position: 'relative', top: 0, left: 0 }}>Shopee</span>
-      </h2>
+      <div className="section-header">
+        <h1 className="section-title">
+          <span>🧡</span>
+          <span>Achadinhos Shopee</span>
+          <span className="deal-store-badge store-shopee" style={{ position: 'relative', top: 0, left: 0 }}>
+            Shopee
+          </span>
+        </h1>
+        <span className="section-badge">
+          {deals.length} {deals.length === 1 ? 'oferta ativa' : 'ofertas ativas'}
+        </span>
+      </div>
       
       {deals.length === 0 ? (
         <div className="empty-state">
-          <h3>Nenhuma oferta encontrada no momento.</h3>
-          <p>O nosso robô logo trará novos achadinhos!</p>
+          <h3>Nenhuma oferta da Shopee encontrada no momento.</h3>
+          <p>O robô do ofertasTOP.shop está buscando novidades agora mesmo!</p>
         </div>
       ) : (
         <div className="deals-grid">
           {deals.map(deal => (
             <div key={deal.id} className="deal-card">
               <div className="deal-image-container">
-                <div className={`deal-store-badge store-shopee`}>Shopee</div>
+                <div className="deal-store-badge store-shopee">Shopee</div>
                 {deal.discount && (
                   <div className="deal-discount-badge">{deal.discount} OFF</div>
                 )}
                 {deal.imageUrl ? (
                   <img src={deal.imageUrl} alt={deal.title} className="deal-image" loading="lazy" />
                 ) : (
-                  <div className="deal-image" style={{backgroundColor: '#eee'}}></div>
+                  <div className="deal-image" style={{backgroundColor: '#f1f5f9'}}></div>
                 )}
               </div>
               
               <div className="deal-content">
-                <h3 className="deal-title">{deal.title}</h3>
+                <h3 className="deal-title" title={deal.title}>{deal.title}</h3>
                 
                 {deal.content && deal.content.length < 60 && (
                   <div className="deal-coupon">
-                    🎟️ {deal.content}
+                    <span>🎟️</span>
+                    <span>{deal.content}</span>
                   </div>
                 )}
 
@@ -66,10 +81,12 @@ export default async function ShopeePage() {
 
                 <div className="deal-buttons">
                   <a href={deal.affiliateLink || '#'} target="_blank" rel="noopener noreferrer" className="deal-button">
-                    Comprar na Shopee 🛒
+                    <span>Comprar na Shopee</span>
+                    <span>🛒</span>
                   </a>
                   <a href="https://chat.whatsapp.com/K4PWG5Z8uYZLQYDWbQo7ig?mode=ac_t" target="_blank" rel="noopener noreferrer" className="deal-button-whatsapp">
-                    Entrar no Grupo VIP 💬
+                    <span>Grupo VIP WhatsApp</span>
+                    <span>💬</span>
                   </a>
                 </div>
               </div>

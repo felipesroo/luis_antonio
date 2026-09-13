@@ -8,11 +8,11 @@ export default async function Home() {
   const limitDate = new Date();
   limitDate.setDate(limitDate.getDate() - 3);
 
-  // Busca as ofertas dos últimos 3 dias (limite opcional de 50 para performance)
+  // Busca as ofertas dos últimos 3 dias (limite de 50 para performance)
   const deals = await prisma.deal.findMany({
     where: {
       createdAt: {
-        gte: limitDate, // gte = greater than or equal (maior ou igual)
+        gte: limitDate,
       }
     },
     orderBy: {
@@ -23,12 +23,20 @@ export default async function Home() {
 
   return (
     <div>
-      <h2>Últimas Ofertas 🔥</h2>
+      <div className="section-header">
+        <h1 className="section-title">
+          <span>🔥</span>
+          <span>Últimas Ofertas & Achadinhos</span>
+        </h1>
+        <span className="section-badge">
+          {deals.length} {deals.length === 1 ? 'oferta verificada' : 'ofertas verificadas'}
+        </span>
+      </div>
       
       {deals.length === 0 ? (
         <div className="empty-state">
           <h3>Nenhuma oferta encontrada no momento.</h3>
-          <p>O nosso robô logo trará novos achadinhos!</p>
+          <p>O robô do ofertasTOP.shop logo trará novos achadinhos imperdíveis!</p>
         </div>
       ) : (
         <div className="deals-grid">
@@ -44,16 +52,17 @@ export default async function Home() {
                 {deal.imageUrl ? (
                   <img src={deal.imageUrl} alt={deal.title} className="deal-image" loading="lazy" />
                 ) : (
-                  <div className="deal-image" style={{backgroundColor: '#eee'}}></div>
+                  <div className="deal-image" style={{backgroundColor: '#f1f5f9'}}></div>
                 )}
               </div>
               
               <div className="deal-content">
-                <h3 className="deal-title">{deal.title}</h3>
+                <h3 className="deal-title" title={deal.title}>{deal.title}</h3>
                 
                 {deal.content && deal.content.length < 60 && (
                   <div className="deal-coupon">
-                    🎟️ {deal.content}
+                    <span>🎟️</span>
+                    <span>{deal.content}</span>
                   </div>
                 )}
 
@@ -68,10 +77,12 @@ export default async function Home() {
 
                 <div className="deal-buttons">
                   <a href={deal.affiliateLink || '#'} target="_blank" rel="noopener noreferrer" className="deal-button">
-                    Comprar Agora 🛒
+                    <span>Ver Oferta</span>
+                    <span>🛒</span>
                   </a>
                   <a href="https://chat.whatsapp.com/K4PWG5Z8uYZLQYDWbQo7ig?mode=ac_t" target="_blank" rel="noopener noreferrer" className="deal-button-whatsapp">
-                    Entrar no Grupo VIP 💬
+                    <span>Grupo VIP WhatsApp</span>
+                    <span>💬</span>
                   </a>
                 </div>
               </div>
