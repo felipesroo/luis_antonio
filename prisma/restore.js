@@ -1,24 +1,29 @@
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
+const path = require('path');
 
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: 'postgres://postgres:Automacao@2026!SuperSegura@2.25.152.195:5433/promofamily'
+      url: process.env.DATABASE_URL || 'postgres://postgres:Automacao@2026!SuperSegura@2.25.152.195:5433/promofamily'
     }
   }
 });
 
 async function main() {
-  const sqlFile = 'C:\\Users\\Felipe\\Downloads\\Deal.sql';
+  const sqlFile = path.join(__dirname, 'Deal.sql');
+  if (!fs.existsSync(sqlFile)) {
+    console.log(`Arquivo ${sqlFile} não encontrado.`);
+    return;
+  }
   console.log(`Lendo arquivo de backup: ${sqlFile}...`);
   let sql = fs.readFileSync(sqlFile, 'utf8');
   
-  console.log('Ajustando comandos INSERT para a tabela promofamily...');
-  sql = sql.replaceAll('INSERT INTO Deal (', 'INSERT INTO promofamily (');
+  console.log('Ajustando comandos INSERT para a tabela ofertastop...');
+  sql = sql.replaceAll('INSERT INTO Deal (', 'INSERT INTO ofertastop (');
 
-  console.log('Limpando dados antigos da tabela promofamily (se houver)...');
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE "promofamily" CASCADE;');
+  console.log('Limpando dados antigos da tabela ofertastop (se houver)...');
+  await prisma.$executeRawUnsafe('TRUNCATE TABLE "ofertastop" CASCADE;');
 
   console.log('Processando queries de inserção...');
   const rawStatements = sql.split(/\);\r?\n/);
@@ -26,7 +31,6 @@ async function main() {
   for (let s of rawStatements) {
     s = s.trim();
     if (s.length === 0) continue;
-    // Add the closing parenthesis and semicolon if they were removed by split
     if (!s.endsWith(';')) {
       s += ');';
     }

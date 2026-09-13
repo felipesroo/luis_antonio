@@ -24,5 +24,5 @@ model Deal {
   store         String   @default("Mercado Livre")
   createdAt     DateTime @default(now())
 
-  @@map("promofamily")
+  @@map("ofertastop")
 }
