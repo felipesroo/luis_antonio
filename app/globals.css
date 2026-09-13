@@ -521,6 +521,153 @@ a {
   color: var(--foreground-muted);
 }
 
+/* ==================== SEARCH & FILTER CONTROLS ==================== */
+.deals-explorer {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-filter-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  padding: 1.25rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 2px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.search-input-wrapper:focus-within {
+  border-color: #ff3d00;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(255, 61, 0, 0.12);
+}
+
+.search-icon {
+  font-size: 1.15rem;
+  margin-right: 0.65rem;
+  opacity: 0.7;
+}
+
+.search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 1rem;
+  color: var(--foreground);
+  font-family: inherit;
+}
+
+.search-input::placeholder {
+  color: var(--foreground-muted);
+}
+
+.search-clear-btn {
+  border: none;
+  background: #e2e8f0;
+  color: #475569;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.search-clear-btn:hover {
+  background: #cbd5e1;
+  color: #0f172a;
+}
+
+.filter-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.filter-chip {
+  padding: 0.45rem 0.95rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid var(--card-border);
+  background: #f1f5f9;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.filter-chip:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.filter-chip.active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
+}
+
+.filter-chip.chip-shopee.active {
+  background: #EE4D2D;
+  color: #ffffff;
+  border-color: #EE4D2D;
+  box-shadow: 0 4px 12px rgba(238, 77, 45, 0.3);
+}
+
+.filter-chip.chip-ml.active {
+  background: #FFE600;
+  color: #2D3277;
+  border-color: #FFE600;
+  box-shadow: 0 4px 12px rgba(255, 230, 0, 0.4);
+}
+
+.filter-chip.chip-discount.active {
+  background: linear-gradient(135deg, #ff3d00 0%, #d83200 100%);
+  color: #ffffff;
+  border-color: #ff3d00;
+  box-shadow: 0 4px 12px rgba(255, 61, 0, 0.3);
+}
+
+.filter-chip-reset {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.filter-chip-reset:hover {
+  background: #fee2e2;
+}
+
 /* ==================== WHATSAPP FLOATING BUTTON (FAB) ==================== */
 .whatsapp-fab {
   position: fixed;
