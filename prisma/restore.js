@@ -5,7 +5,7 @@ const path = require('path');
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL || 'postgres://postgres:Automacao@2026!SuperSegura@2.25.152.195:5433/promofamily'
+      url: process.env.DATABASE_URL
     }
   }
 });
