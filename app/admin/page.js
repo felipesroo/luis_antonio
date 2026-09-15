@@ -34,6 +34,9 @@ export default function AdminDashboard() {
   // 4. Automações n8n
   const [n8nData, setN8nData] = useState({ shopee: null, ml: null });
   const [loadingN8n, setLoadingN8n] = useState(false);
+  const [cronPlatform, setCronPlatform] = useState('both');
+  const [cronExpression, setCronExpression] = useState('*/15 8-22 * * *');
+  const [savingCron, setSavingCron] = useState(false);
 
   // 5. Prompts de IA
   const [promptPlatform, setPromptPlatform] = useState('ml');
@@ -310,6 +313,9 @@ export default function AdminDashboard() {
         } else if (promptPlatform === 'shopee' && data.shopee?.prompt) {
           setPromptText(data.shopee.prompt);
         }
+        if (data.shopee?.cron || data.ml?.cron) {
+          setCronExpression(data.shopee?.cron || data.ml?.cron || '*/15 8-22 * * *');
+        }
       }
     } catch (e) {
       console.error('Erro ao carregar n8n:', e);
@@ -334,6 +340,52 @@ export default function AdminDashboard() {
       }
     } catch {
       showToast('Erro de comunicação com o n8n', 'danger');
+    }
+  }
+
+  // Tradução amigável para expressões Cron comuns
+  function formatCronReadable(cron) {
+    if (!cron) return 'Não configurado';
+    const c = cron.trim();
+    if (c === '*/10 8-22 * * *') return 'A cada 10 min (08h às 22h)';
+    if (c === '*/15 8-22 * * *') return 'A cada 15 min (08h às 22h) - Padrão';
+    if (c === '0,30 8-22 * * *') return 'A cada 30 min (08h às 22h)';
+    if (c === '0 8-22 * * *') return 'A cada 1 hora (08h às 22h)';
+    if (c === '0 8,10,12,14,16,18,20,22 * * *') return 'A cada 2 horas (08h às 22h)';
+    if (c === '*/30 * * * *') return '24 Horas: A cada 30 min';
+    if (c === '0 * * * *') return '24 Horas: A cada 1 hora';
+    if (c === '*/15 8-21 * * *') return 'A cada 15 min (08h às 21h)';
+    if (c === '0,30 8-21 * * *') return 'A cada 30 min (08h às 21h)';
+    return `${c}`;
+  }
+
+  async function handleSaveCron(e) {
+    e?.preventDefault();
+    if (!cronExpression || !cronExpression.trim()) {
+      showToast('Informe uma expressão Cron válida.', 'danger');
+      return;
+    }
+    setSavingCron(true);
+    try {
+      const res = await adminFetch('/api/admin/n8n?action=update_cron', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform: cronPlatform,
+          cronExpression: cronExpression.trim()
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(data.message || 'Agendamento dos disparos atualizado com sucesso!');
+        loadN8n();
+      } else {
+        showToast(data.error || 'Erro ao salvar agendamento Cron', 'danger');
+      }
+    } catch {
+      showToast('Erro de conexão ao salvar Cron', 'danger');
+    } finally {
+      setSavingCron(false);
     }
   }
 
@@ -1016,40 +1068,67 @@ export default function AdminDashboard() {
                   <span>⚡</span> Controle de Disparos e Automações (n8n)
                 </h2>
                 <p className="admin-card-subtitle">
-                  Pause ou ative os robôs de ofertas a qualquer momento com uma chave rápida.
+                  Pause ou ative os robôs e configure a frequência exata de buscas e disparos automáticos nos grupos do WhatsApp.
                 </p>
               </div>
 
-              <button onClick={loadN8n} className="admin-btn admin-btn-secondary admin-btn-sm">
-                🔄 Atualizar Status
+              <button
+                onClick={loadN8n}
+                className="admin-btn admin-btn-secondary admin-btn-sm"
+                disabled={loadingN8n}
+              >
+                {loadingN8n ? 'Atualizando...' : '🔄 Atualizar Status'}
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
+            {/* Cards dos Robôs */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '28px' }}>
               {/* Robô Shopee */}
               <div style={{
                 background: 'rgba(15, 23, 42, 0.7)',
                 border: '1px solid rgba(249, 115, 22, 0.3)',
                 borderRadius: '16px',
-                padding: '24px'
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '28px' }}>🧡</span>
-                    <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#ffffff' }}>Robô Shopee</h3>
-                      <p style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Workflow ID: {n8nData.shopee?.id}</p>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '28px' }}>🧡</span>
+                      <div>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#ffffff' }}>Robô Shopee</h3>
+                        <p style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Workflow: {n8nData.shopee?.id || 'mcCYYe0PcvlKssqt'}</p>
+                      </div>
                     </div>
+
+                    <span className={`admin-badge ${n8nData.shopee?.active ? 'admin-badge-success' : 'admin-badge-danger'}`}>
+                      {n8nData.shopee?.active ? 'Ativo (Disparando)' : 'Pausado'}
+                    </span>
                   </div>
 
-                  <span className={`admin-badge ${n8nData.shopee?.active ? 'admin-badge-success' : 'admin-badge-danger'}`}>
-                    {n8nData.shopee?.active ? 'Ativo (Disparando)' : 'Pausado'}
-                  </span>
-                </div>
+                  <p style={{ color: '#cbd5e1', fontSize: '0.88rem', marginBottom: '14px', lineHeight: '1.5' }}>
+                    Filtro ativo: Produtos com avaliação &gt;= 4.0★ e desconto mínimo &gt;= 15%.
+                  </p>
 
-                <p style={{ color: '#cbd5e1', fontSize: '0.88rem', marginBottom: '16px', lineHeight: '1.5' }}>
-                  Filtro ativo: Produtos com avaliação &gt;= 4.0★ e desconto mínimo &gt;= 15%.
-                </p>
+                  <div style={{
+                    background: 'rgba(249, 115, 22, 0.1)',
+                    border: '1px solid rgba(249, 115, 22, 0.3)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    marginBottom: '16px',
+                    fontSize: '0.84rem'
+                  }}>
+                    <span style={{ color: '#fdba74', fontWeight: '600' }}>⏰ Frequência de Disparos:</span>
+                    <div style={{ color: '#ffffff', fontWeight: '700', marginTop: '2px' }}>
+                      {formatCronReadable(n8nData.shopee?.cron)}
+                    </div>
+                    <span style={{ color: '#94a3b8', fontSize: '0.74rem', fontFamily: 'monospace' }}>
+                      Expressão: {n8nData.shopee?.cron || 'Não definida'}
+                    </span>
+                  </div>
+                </div>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button
@@ -1067,25 +1146,47 @@ export default function AdminDashboard() {
                 background: 'rgba(15, 23, 42, 0.7)',
                 border: '1px solid rgba(255, 230, 0, 0.3)',
                 borderRadius: '16px',
-                padding: '24px'
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '28px' }}>💛</span>
-                    <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#ffffff' }}>Robô Mercado Livre</h3>
-                      <p style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Workflow ID: {n8nData.ml?.id}</p>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '28px' }}>💛</span>
+                      <div>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#ffffff' }}>Robô Mercado Livre</h3>
+                        <p style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Workflow: {n8nData.ml?.id || 'uootdY9kh793Y1pV'}</p>
+                      </div>
                     </div>
+
+                    <span className={`admin-badge ${n8nData.ml?.active ? 'admin-badge-success' : 'admin-badge-danger'}`}>
+                      {n8nData.ml?.active ? 'Ativo (Disparando)' : 'Pausado'}
+                    </span>
                   </div>
 
-                  <span className={`admin-badge ${n8nData.ml?.active ? 'admin-badge-success' : 'admin-badge-danger'}`}>
-                    {n8nData.ml?.active ? 'Ativo (Disparando)' : 'Pausado'}
-                  </span>
-                </div>
+                  <p style={{ color: '#cbd5e1', fontSize: '0.88rem', marginBottom: '14px', lineHeight: '1.5' }}>
+                    Filtro ativo: Desconto real &gt;= 15% e alerta de cookies no WhatsApp em caso de deslogar.
+                  </p>
 
-                <p style={{ color: '#cbd5e1', fontSize: '0.88rem', marginBottom: '16px', lineHeight: '1.5' }}>
-                  Filtro ativo: Cálculo de desconto real &gt;= 15% e alerta de cookies no WhatsApp em caso de deslogar.
-                </p>
+                  <div style={{
+                    background: 'rgba(255, 230, 0, 0.08)',
+                    border: '1px solid rgba(255, 230, 0, 0.25)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    marginBottom: '16px',
+                    fontSize: '0.84rem'
+                  }}>
+                    <span style={{ color: '#fef08a', fontWeight: '600' }}>⏰ Frequência de Disparos:</span>
+                    <div style={{ color: '#ffffff', fontWeight: '700', marginTop: '2px' }}>
+                      {formatCronReadable(n8nData.ml?.cron)}
+                    </div>
+                    <span style={{ color: '#94a3b8', fontSize: '0.74rem', fontFamily: 'monospace' }}>
+                      Expressão: {n8nData.ml?.cron || 'Não definida'}
+                    </span>
+                  </div>
+                </div>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button
@@ -1097,6 +1198,198 @@ export default function AdminDashboard() {
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* SEÇÃO DO AGENDADOR CRON DE DISPAROS */}
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.9)',
+              border: '1px solid rgba(139, 92, 246, 0.35)',
+              borderRadius: '16px',
+              padding: '24px',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.3)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>⏱️</span> Agendamento e Frequência de Disparos (Cron n8n)
+                  </h3>
+                  <p style={{ color: '#94a3b8', fontSize: '0.86rem', marginTop: '4px' }}>
+                    Escolha de quanto em quanto tempo seus robôs devem buscar ofertas e disparar nos grupos do WhatsApp.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveCron}>
+                {/* Seleção de Plataforma Alvo */}
+                <div className="admin-form-group" style={{ marginBottom: '20px' }}>
+                  <label className="admin-label">Aplicar agendamento em qual robô?</label>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setCronPlatform('both')}
+                      className={`admin-btn admin-btn-sm ${cronPlatform === 'both' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
+                      style={{ flex: 1, minWidth: '150px' }}
+                    >
+                      ⚡ Ambos os Robôs (Shopee + ML)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCronPlatform('shopee')}
+                      className={`admin-btn admin-btn-sm ${cronPlatform === 'shopee' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
+                      style={{ flex: 1, minWidth: '130px' }}
+                    >
+                      🧡 Apenas Shopee
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCronPlatform('ml')}
+                      className={`admin-btn admin-btn-sm ${cronPlatform === 'ml' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
+                      style={{ flex: 1, minWidth: '130px' }}
+                    >
+                      💛 Apenas Mercado Livre
+                    </button>
+                  </div>
+                </div>
+
+                {/* Presets Rápidos */}
+                <div className="admin-form-group" style={{ marginBottom: '20px' }}>
+                  <label className="admin-label">Escolha um intervalo rápido (ou digite abaixo):</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setCronExpression('*/10 8-22 * * *')}
+                      className={`admin-cron-preset-btn ${cronExpression === '*/10 8-22 * * *' ? 'active' : ''}`}
+                    >
+                      <span className="cron-preset-icon">⚡</span>
+                      <div>
+                        <strong>A cada 10 minutos</strong>
+                        <small>Das 08:00 às 22:59</small>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCronExpression('*/15 8-22 * * *')}
+                      className={`admin-cron-preset-btn ${cronExpression === '*/15 8-22 * * *' ? 'active' : ''}`}
+                    >
+                      <span className="cron-preset-icon">⭐</span>
+                      <div>
+                        <strong>A cada 15 minutos</strong>
+                        <small>Das 08:00 às 22:59 (Recomendado)</small>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCronExpression('0,30 8-22 * * *')}
+                      className={`admin-cron-preset-btn ${cronExpression === '0,30 8-22 * * *' ? 'active' : ''}`}
+                    >
+                      <span className="cron-preset-icon">🕒</span>
+                      <div>
+                        <strong>A cada 30 minutos</strong>
+                        <small>Das 08:00 às 22:59</small>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCronExpression('0 8-22 * * *')}
+                      className={`admin-cron-preset-btn ${cronExpression === '0 8-22 * * *' ? 'active' : ''}`}
+                    >
+                      <span className="cron-preset-icon">⏱️</span>
+                      <div>
+                        <strong>A cada 1 hora</strong>
+                        <small>Das 08:00 às 22:59</small>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCronExpression('0 8,10,12,14,16,18,20,22 * * *')}
+                      className={`admin-cron-preset-btn ${cronExpression === '0 8,10,12,14,16,18,20,22 * * *' ? 'active' : ''}`}
+                    >
+                      <span className="cron-preset-icon">🕑</span>
+                      <div>
+                        <strong>A cada 2 horas</strong>
+                        <small>Das 08:00 às 22:59</small>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCronExpression('*/30 * * * *')}
+                      className={`admin-cron-preset-btn ${cronExpression === '*/30 * * * *' ? 'active' : ''}`}
+                    >
+                      <span className="cron-preset-icon">🌙</span>
+                      <div>
+                        <strong>24 Horas: A cada 30 min</strong>
+                        <small>Dia e noite sem pausa</small>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCronExpression('0 * * * *')}
+                      className={`admin-cron-preset-btn ${cronExpression === '0 * * * *' ? 'active' : ''}`}
+                    >
+                      <span className="cron-preset-icon">🌙</span>
+                      <div>
+                        <strong>24 Horas: A cada 1 hora</strong>
+                        <small>Dia e noite sem pausa</small>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Input de Expressão Cron Customizada */}
+                <div className="admin-form-group" style={{ marginBottom: '20px' }}>
+                  <label className="admin-label">
+                    Expressão Cron (Formato padrão n8n de 5 posições):
+                  </label>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      className="admin-input"
+                      style={{ fontFamily: 'monospace', fontSize: '1.05rem', fontWeight: '700', letterSpacing: '1px', flex: 1, minWidth: '220px' }}
+                      value={cronExpression}
+                      onChange={(e) => setCronExpression(e.target.value)}
+                      placeholder="*/15 8-22 * * *"
+                      required
+                    />
+
+                    <div style={{
+                      background: 'rgba(139, 92, 246, 0.15)',
+                      border: '1px solid rgba(139, 92, 246, 0.4)',
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      color: '#c4b5fd',
+                      fontSize: '0.88rem',
+                      fontWeight: '600'
+                    }}>
+                      💬 {formatCronReadable(cronExpression)}
+                    </div>
+                  </div>
+
+                  <p className="admin-help-text" style={{ marginTop: '8px' }}>
+                    Estrutura da expressão: <code>[minuto] [hora] [dia do mês] [mês] [dia da semana]</code>. Exemplo: <code>*/15 8-22 * * *</code> roda a cada 15 minutos entre as 08:00 e as 22:59 todos os dias.
+                  </p>
+                </div>
+
+                {/* Botão de Salvar Cron */}
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <button
+                    type="submit"
+                    className="admin-btn admin-btn-success"
+                    disabled={savingCron}
+                    style={{ padding: '12px 28px', fontSize: '0.98rem' }}
+                  >
+                    {savingCron ? 'Salvando no n8n...' : '💾 Salvar e Aplicar Agendamento no n8n'}
+                  </button>
+                  <span style={{ color: '#94a3b8', fontSize: '0.82rem' }}>
+                    O n8n atualizará o nó Schedule Trigger instantaneamente sem reiniciar os servidores.
+                  </span>
+                </div>
+              </form>
             </div>
           </div>
         )}

@@ -70,7 +70,7 @@ export async function GET(request) {
     ]);
 
     // Parse Shopee
-    let shopeeInfo = { id: SHOPEE_WF_ID, name: 'Shopee', active: false, targetGroup: '', prompt: '' };
+    let shopeeInfo = { id: SHOPEE_WF_ID, name: 'Shopee', active: false, targetGroup: '', prompt: '', cron: '' };
     if (shopeeRes.ok && shopeeRes.data) {
       const wf = shopeeRes.data;
       shopeeInfo.active = !!wf.active;
@@ -82,10 +82,13 @@ export async function GET(request) {
 
       const aiNode = wf.nodes?.find(n => n.type?.includes('agent') || n.name === 'AI Agent');
       shopeeInfo.prompt = aiNode?.parameters?.options?.systemMessage || '';
+
+      const trigger = wf.nodes?.find(n => n.type?.includes('schedule') || n.name?.toLowerCase().includes('schedule') || n.name?.toLowerCase().includes('trigger'));
+      shopeeInfo.cron = trigger?.parameters?.rule?.interval?.[0]?.expression || '';
     }
 
     // Parse ML
-    let mlInfo = { id: ML_WF_ID, name: 'Mercado Livre', active: false, targetGroup: '', prompt: '' };
+    let mlInfo = { id: ML_WF_ID, name: 'Mercado Livre', active: false, targetGroup: '', prompt: '', cron: '' };
     if (mlRes.ok && mlRes.data) {
       const wf = mlRes.data;
       mlInfo.active = !!wf.active;
@@ -97,6 +100,9 @@ export async function GET(request) {
 
       const aiNode = wf.nodes?.find(n => n.type?.includes('agent') || n.name === 'Gemini1');
       mlInfo.prompt = aiNode?.parameters?.options?.systemMessage || '';
+
+      const trigger = wf.nodes?.find(n => n.type?.includes('schedule') || n.name?.toLowerCase().includes('schedule') || n.name?.toLowerCase().includes('trigger'));
+      mlInfo.cron = trigger?.parameters?.rule?.interval?.[0]?.expression || '';
     }
 
     return NextResponse.json({ shopee: shopeeInfo, ml: mlInfo });
@@ -218,5 +224,53 @@ export async function POST(request) {
     }
   }
 
+  // 4. Atualizar Agendamento Cron dos Disparos (Shopee e/ou Mercado Livre)
+  if (action === 'update_cron') {
+    try {
+      const { platform, cronExpression } = await request.json();
+      if (!cronExpression || !cronExpression.trim()) {
+        return NextResponse.json({ error: 'Expressão cron é obrigatória' }, { status: 400 });
+      }
+
+      const cleanCron = cronExpression.trim();
+      const targets = platform === 'both' ? ['shopee', 'ml'] : [platform];
+
+      for (const p of targets) {
+        const wfId = p === 'shopee' ? SHOPEE_WF_ID : ML_WF_ID;
+        const getRes = await n8nRequest(`/api/v1/workflows/${wfId}`);
+        if (!getRes.ok || !getRes.data) continue;
+
+        const wf = getRes.data;
+        const trigger = wf.nodes.find(n => n.type?.includes('schedule') || n.name?.toLowerCase().includes('schedule') || n.name?.toLowerCase().includes('trigger'));
+
+        if (trigger) {
+          if (!trigger.parameters) trigger.parameters = {};
+          if (!trigger.parameters.rule) trigger.parameters.rule = {};
+          if (!trigger.parameters.rule.interval || !trigger.parameters.rule.interval.length) {
+            trigger.parameters.rule.interval = [{ field: 'cronExpression', expression: cleanCron }];
+          } else {
+            trigger.parameters.rule.interval[0].field = 'cronExpression';
+            trigger.parameters.rule.interval[0].expression = cleanCron;
+          }
+
+          await n8nRequest(`/api/v1/workflows/${wfId}`, 'PUT', {
+            name: wf.name,
+            nodes: wf.nodes,
+            connections: wf.connections,
+            settings: { executionOrder: wf.settings?.executionOrder || 'v1' }
+          });
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Agendamento Cron atualizado para "${cleanCron}" com sucesso!`
+      });
+    } catch (e) {
+      return NextResponse.json({ error: e.message }, { status: 500 });
+    }
+  }
+
   return NextResponse.json({ error: 'Ação desconhecida' }, { status: 400 });
 }
+
