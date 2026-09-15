@@ -55,6 +55,16 @@ export default function AdminDashboard() {
   const [totalClicks, setTotalClicks] = useState(0);
   const [loadingDeals, setLoadingDeals] = useState(false);
 
+  // Helper para requisições autenticadas com suporte a Token Bearer e Cookies
+  function adminFetch(url, options = {}) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
+    const headers = { ...(options.headers || {}) };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return fetch(url, { ...options, headers });
+  }
+
   // Helper para toast
   function showToast(msg, type = 'success') {
     setToast({ msg, type });
@@ -65,7 +75,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const res = await fetch('/api/admin/auth');
+        const res = await adminFetch('/api/admin/auth');
         const data = await res.json();
         if (!data.authenticated) {
           router.push('/admin/login');
@@ -93,7 +103,7 @@ export default function AdminDashboard() {
   // === MÓDULO MERCADO LIVRE ===
   async function loadMlCookies() {
     try {
-      const res = await fetch('/api/admin/cookies');
+      const res = await adminFetch('/api/admin/cookies');
       if (res.ok) {
         const data = await res.json();
         setMlData({
@@ -112,7 +122,7 @@ export default function AdminDashboard() {
     e?.preventDefault();
     setLoadingMl(true);
     try {
-      const res = await fetch('/api/admin/cookies', {
+      const res = await adminFetch('/api/admin/cookies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(mlData)
@@ -134,7 +144,7 @@ export default function AdminDashboard() {
   async function handleTestMl() {
     setMlTestStatus({ loading: true });
     try {
-      const res = await fetch('/api/admin/cookies', {
+      const res = await adminFetch('/api/admin/cookies', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(mlData)
@@ -154,7 +164,7 @@ export default function AdminDashboard() {
   async function loadWaha() {
     setLoadingWaha(true);
     try {
-      const res = await fetch('/api/admin/waha?action=status');
+      const res = await adminFetch('/api/admin/waha?action=status');
       if (res.ok) {
         const data = await res.json();
         setWahaStatus(data);
@@ -171,7 +181,7 @@ export default function AdminDashboard() {
 
   async function loadQrCode() {
     try {
-      const res = await fetch('/api/admin/waha?action=qr');
+      const res = await adminFetch('/api/admin/waha?action=qr');
       if (res.ok) {
         const data = await res.json();
         setQrCodeData(data);
@@ -189,7 +199,7 @@ export default function AdminDashboard() {
     if (!confirm('Deseja realmente reiniciar a sessão do WhatsApp?')) return;
     setLoadingWaha(true);
     try {
-      const res = await fetch('/api/admin/waha?action=restart', { method: 'POST' });
+      const res = await adminFetch('/api/admin/waha?action=restart', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         showToast('Sessão reiniciada! Aguardando reconexão...');
@@ -208,7 +218,7 @@ export default function AdminDashboard() {
     if (!confirm('Atenção: Ao desconectar, você precisará ler o QR Code novamente para reconectar. Continuar?')) return;
     setLoadingWaha(true);
     try {
-      const res = await fetch('/api/admin/waha?action=logout', { method: 'POST' });
+      const res = await adminFetch('/api/admin/waha?action=logout', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         showToast('Sessão desconectada. Gerando novo QR Code...');
@@ -228,7 +238,7 @@ export default function AdminDashboard() {
   async function loadGroups() {
     setLoadingGroups(true);
     try {
-      const res = await fetch('/api/admin/waha?action=groups');
+      const res = await adminFetch('/api/admin/waha?action=groups');
       if (res.ok) {
         const data = await res.json();
         setGroups(data.groups || []);
@@ -242,7 +252,7 @@ export default function AdminDashboard() {
 
   async function handleSetTargetGroup(groupId) {
     try {
-      const res = await fetch('/api/admin/n8n?action=update_group', {
+      const res = await adminFetch('/api/admin/n8n?action=update_group', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetGroup: groupId })
@@ -263,7 +273,7 @@ export default function AdminDashboard() {
   async function handleSendTestMessage(groupId) {
     setTestSendingId(groupId);
     try {
-      const res = await fetch('/api/admin/waha?action=test_message', {
+      const res = await adminFetch('/api/admin/waha?action=test_message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -288,7 +298,7 @@ export default function AdminDashboard() {
   async function loadN8n() {
     setLoadingN8n(true);
     try {
-      const res = await fetch('/api/admin/n8n');
+      const res = await adminFetch('/api/admin/n8n');
       if (res.ok) {
         const data = await res.json();
         setN8nData(data);
@@ -310,7 +320,7 @@ export default function AdminDashboard() {
 
   async function handleToggleWorkflow(platform, currentActive) {
     try {
-      const res = await fetch('/api/admin/n8n?action=toggle', {
+      const res = await adminFetch('/api/admin/n8n?action=toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ platform, active: !currentActive })
@@ -340,7 +350,7 @@ export default function AdminDashboard() {
   async function handleSavePrompt() {
     setSavingPrompt(true);
     try {
-      const res = await fetch('/api/admin/n8n?action=update_prompt', {
+      const res = await adminFetch('/api/admin/n8n?action=update_prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ platform: promptPlatform, prompt: promptText })
@@ -372,7 +382,7 @@ export default function AdminDashboard() {
   // === MÓDULO CONFIGS SITE ===
   async function loadSiteConfigs() {
     try {
-      const res = await fetch('/api/admin/config');
+      const res = await adminFetch('/api/admin/config');
       if (res.ok) {
         const data = await res.json();
         setSiteConfigs(data.configs || {});
@@ -386,7 +396,7 @@ export default function AdminDashboard() {
     e?.preventDefault();
     setSavingConfigs(true);
     try {
-      const res = await fetch('/api/admin/config', {
+      const res = await adminFetch('/api/admin/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(siteConfigs)
@@ -408,7 +418,7 @@ export default function AdminDashboard() {
   async function loadDeals() {
     setLoadingDeals(true);
     try {
-      const res = await fetch('/api/admin/deals');
+      const res = await adminFetch('/api/admin/deals');
       if (res.ok) {
         const data = await res.json();
         setDeals(data.deals || []);
@@ -438,7 +448,7 @@ export default function AdminDashboard() {
   }
 
   async function handleLogout() {
-    await fetch('/api/admin/auth', { method: 'DELETE' });
+    await adminFetch('/api/admin/auth', { method: 'DELETE' });
     router.push('/admin/login');
   }
 

@@ -26,6 +26,11 @@ export default function AdminLogin() {
 
       const data = await res.json();
       if (res.ok && data.success) {
+        if (data.token) {
+          try {
+            localStorage.setItem('admin_token', data.token);
+          } catch (e) {}
+        }
         router.push('/admin');
       } else {
         setError(data.error || 'Senha incorreta. Verifique e tente novamente.');

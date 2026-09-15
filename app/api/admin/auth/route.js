@@ -16,11 +16,11 @@ export async function POST(request) {
     }
 
     const token = createAdminToken();
-    const response = NextResponse.json({ success: true, message: 'Autenticado com sucesso' });
+    const response = NextResponse.json({ success: true, token, message: 'Autenticado com sucesso' });
 
     response.cookies.set('admin_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Suporta conexões HTTP (como sslip.io) e HTTPS sem descarte pelo navegador
       sameSite: 'lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60 // 7 dias
