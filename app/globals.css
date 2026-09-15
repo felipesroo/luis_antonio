@@ -73,6 +73,28 @@ a {
 }
 
 /* ==================== HEADER ==================== */
+/* Faixa de Destaque no Topo do Site */
+.site-top-banner {
+  background: linear-gradient(90deg, #7c3aed, #4f46e5);
+  color: #ffffff;
+  padding: 9px 16px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+  z-index: 101;
+}
+
+.site-top-banner:hover {
+  opacity: 0.95;
+}
+
+/* Header */
 .header {
   background: var(--header-gradient);
   color: white;

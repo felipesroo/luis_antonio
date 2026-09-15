@@ -1,5 +1,6 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { prisma } from "../lib/prisma";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -13,10 +14,34 @@ export const metadata = {
   }
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  let whatsappVipLink = "https://chat.whatsapp.com/K4PWG5Z8uYZLQYDWbQo7ig?mode=ac_t";
+  let bannerText = "";
+  let bannerActive = false;
+
+  try {
+    const configs = await prisma.appConfig.findMany();
+    configs.forEach(c => {
+      if (c.key === 'whatsapp_vip_link' && c.value) whatsappVipLink = c.value;
+      if (c.key === 'site_banner_text') bannerText = c.value;
+      if (c.key === 'site_banner_active') bannerActive = c.value === 'true';
+    });
+  } catch (e) {
+    // Fallback silencioso para manter estabilidade
+  }
+
   return (
     <html lang="pt-BR">
       <body className={inter.className}>
+        {/* Faixa de Aviso no Topo (se ativada no Painel) */}
+        {bannerActive && bannerText && (
+          <a href={whatsappVipLink} target="_blank" rel="noopener noreferrer" className="site-top-banner">
+            <span>📢</span>
+            <span>{bannerText}</span>
+            <span>→</span>
+          </a>
+        )}
+
         <header className="header">
           <a href="/" className="header-brand">
             <div className="header-logo-container">
@@ -58,12 +83,18 @@ export default function RootLayout({ children }) {
         <footer className="footer">
           <p className="footer-brand">ofertasTOP.shop</p>
           <p className="footer-tagline">O seu agregador inteligente de achadinhos da Shopee e Mercado Livre</p>
-          <p>© {new Date().getFullYear()} ofertasTOP.shop. Todos os direitos reservados.</p>
+          <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginTop: '6px' }}>
+            <span>© {new Date().getFullYear()} ofertasTOP.shop. Todos os direitos reservados.</span>
+            <span>•</span>
+            <a href="/admin" style={{ color: 'inherit', opacity: 0.6, fontSize: '0.8rem', textDecoration: 'none' }}>
+              Painel Interno
+            </a>
+          </p>
         </footer>
 
         {/* Botão Flutuante do Grupo VIP no WhatsApp */}
         <a
-          href="https://chat.whatsapp.com/K4PWG5Z8uYZLQYDWbQo7ig?mode=ac_t"
+          href={whatsappVipLink}
           target="_blank"
           rel="noopener noreferrer"
           className="whatsapp-fab"
@@ -84,3 +115,4 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
+

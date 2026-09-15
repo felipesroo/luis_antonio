@@ -27,3 +27,41 @@ model Deal {
 
   @@map("ofertastop")
 }
+
+model CookiesConfig {
+  id         Int      @id @default(autoincrement())
+  platform   String   @unique
+  cookie     String   @db.Text
+  userAgent  String   @map("user_agent") @db.Text
+  xCsrfToken String?  @map("x_csrf_token") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("cookies_config")
+}
+
+model AppConfig {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("app_config")
+}
+
+model ProdutoDisparado {
+  id            String    @id @db.VarChar(255)
+  name          String?   @db.Text
+  title         String?   @db.Text
+  originalPrice Float?    @map("original_price")
+  actualPrice   Float?    @map("actual_price")
+  discount      String?   @db.Text
+  url           String?   @db.Text
+  shortUrl      String?   @map("short_url") @db.Text
+  imageUrl      String?   @map("image_url") @db.Text
+  store         String?   @db.Text
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("produtos_disparados")
+}
+
+
