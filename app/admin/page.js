@@ -440,9 +440,9 @@ export default function AdminDashboard() {
   function handleApplyPromptPreset(template) {
     let text = '';
     if (template === 'urgente') {
-      text = `=Atue como um Especialista em Achadinhos e Ofertas Relâmpago.\n\n"Adicione apenas emojis dinâmicos e mantenha o tom de urgência."\n\n--- MODELO ---\n🚨 *MEGA PROMOÇÃO DETECTADA!*\n\n📦 {{ $json.name || $json.productName }}\n\n❌ De: ~R$ {{ $json.original_price || $json.price }}~\n🔥 *Por: R$ {{ $json.actual_price || $json.price }}*\n🎟️ Desconto: {{ $json.discount || $json.priceDiscountRate + '%' }}\n\n⚡ *Aproveite antes que acabe o estoque:*\n🔗 {{ $json.short_url || $json.shortLink }}\n\n🚀 *Mais ofertas exclusivas:* http://wqvie9pfrpbncwetgt7qnebb.147.93.15.31.sslip.io`;
+      text = `=Atue como um Especialista em Achadinhos e Ofertas Relâmpago.\n\n"Adicione apenas emojis dinâmicos e mantenha o tom de urgência."\n\n--- MODELO ---\n🚨 *MEGA PROMOÇÃO DETECTADA!*\n\n📦 {{ $json.name || $json.productName }}\n\n❌ De: ~R$ {{ $json.original_price || $json.price }}~\n🔥 *Por: R$ {{ $json.actual_price || $json.price }}*\n🎟️ Desconto: {{ $json.discount || $json.priceDiscountRate + '%' }}\n{{ $json.coupon_line ? $json.coupon_line + '\\n' : '' }}\n⚡ *Aproveite antes que acabe o estoque:*\n🔗 {{ $json.short_url || $json.shortLink }}\n\n🚀 *Mais ofertas exclusivas:* http://wqvie9pfrpbncwetgt7qnebb.147.93.15.31.sslip.io`;
     } else if (template === 'direto') {
-      text = `=Atue como um Editor de Ofertas Direto e Objetivo.\n\n--- MODELO ---\n{{ $json.name || $json.productName }}\n\n💰 *R$ {{ $json.actual_price || $json.price }}* ({{ $json.discount || $json.priceDiscountRate + '%' }} OFF)\n\n👉 Compre aqui: {{ $json.short_url || $json.shortLink }}`;
+      text = `=Atue como um Editor de Ofertas Direto e Objetivo.\n\n--- MODELO ---\n{{ $json.name || $json.productName }}\n\n💰 *R$ {{ $json.actual_price || $json.price }}* ({{ $json.discount || $json.priceDiscountRate + '%' }} OFF)\n{{ $json.coupon_line ? $json.coupon_line + '\\n' : '' }}\n👉 Compre aqui: {{ $json.short_url || $json.shortLink }}`;
     }
     if (text) setPromptText(text);
   }
