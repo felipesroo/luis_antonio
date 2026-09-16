@@ -60,27 +60,34 @@ export async function GET(request) {
         cookie: '',
         userAgent: '',
         xCsrfToken: '',
+        scrapingUrl: 'https://www.mercadolivre.com.br/ofertas?container_id=MLB779362-1&page=1',
         updatedAt: null
       });
     }
 
-    return NextResponse.json(config);
+    return NextResponse.json({
+      ...config,
+      scrapingUrl: config.scrapingUrl || 'https://www.mercadolivre.com.br/ofertas?container_id=MLB779362-1&page=1'
+    });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// POST: Salva novos cookies, token e agente no PostgreSQL
+// POST: Salva novos cookies, token, agente e link de scraping no PostgreSQL
 export async function POST(request) {
   const isAuth = await isAuthenticatedAdmin(request);
   if (!isAuth) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
   try {
-    const { cookie, userAgent, xCsrfToken } = await request.json();
+    const { cookie, userAgent, xCsrfToken, scrapingUrl } = await request.json();
 
     if (!cookie || !cookie.trim()) {
       return NextResponse.json({ error: 'O campo de Cookie não pode estar vazio.' }, { status: 400 });
     }
+
+    const defaultUrl = 'https://www.mercadolivre.com.br/ofertas?container_id=MLB779362-1&page=1';
+    const targetUrl = (scrapingUrl && scrapingUrl.trim()) ? scrapingUrl.trim() : defaultUrl;
 
     const updated = await prisma.cookiesConfig.upsert({
       where: { platform: 'mercado_livre' },
@@ -88,19 +95,21 @@ export async function POST(request) {
         cookie: cookie.trim(),
         userAgent: (userAgent || '').trim(),
         xCsrfToken: (xCsrfToken || '').trim(),
+        scrapingUrl: targetUrl,
         updatedAt: new Date()
       },
       create: {
         platform: 'mercado_livre',
         cookie: cookie.trim(),
         userAgent: (userAgent || '').trim(),
-        xCsrfToken: (xCsrfToken || '').trim()
+        xCsrfToken: (xCsrfToken || '').trim(),
+        scrapingUrl: targetUrl
       }
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Credenciais do Mercado Livre atualizadas com sucesso!',
+      message: 'Credenciais e link de scraping do Mercado Livre atualizados com sucesso!',
       updated
     });
   } catch (error) {

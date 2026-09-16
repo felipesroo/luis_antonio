@@ -14,7 +14,7 @@ export default function AdminDashboard() {
 
   // Estados dos Módulos
   // 1. Mercado Livre
-  const [mlData, setMlData] = useState({ cookie: '', xCsrfToken: '', userAgent: '', updatedAt: null });
+  const [mlData, setMlData] = useState({ cookie: '', xCsrfToken: '', userAgent: '', scrapingUrl: '', updatedAt: null });
   const [loadingMl, setLoadingMl] = useState(false);
   const [mlTestStatus, setMlTestStatus] = useState(null);
   const [showF12Help, setShowF12Help] = useState(false);
@@ -129,6 +129,7 @@ export default function AdminDashboard() {
           cookie: data.cookie || '',
           xCsrfToken: data.xCsrfToken || '',
           userAgent: data.userAgent || '',
+          scrapingUrl: data.scrapingUrl || 'https://www.mercadolivre.com.br/ofertas?container_id=MLB779362-1&page=1',
           updatedAt: data.updatedAt
         });
       }
@@ -878,6 +879,43 @@ export default function AdminDashboard() {
             )}
 
             <form onSubmit={handleSaveMl}>
+              {/* Link da Página de Ofertas / Categoria do Mercado Livre */}
+              <div className="admin-form-group" style={{
+                background: 'rgba(15, 23, 42, 0.75)',
+                border: '1px solid rgba(255, 230, 0, 0.35)',
+                borderRadius: '12px',
+                padding: '18px 20px',
+                marginBottom: '24px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                  <label className="admin-label" style={{ color: '#ffe600', fontSize: '1rem', fontWeight: '700', marginBottom: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>🔗</span> Link da Página de Ofertas / Categoria a Disparar
+                  </label>
+                  {mlData.scrapingUrl && (
+                    <a
+                      href={mlData.scrapingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="admin-btn admin-btn-secondary admin-btn-sm"
+                      style={{ textDecoration: 'none', color: '#ffe600', borderColor: 'rgba(255, 230, 0, 0.4)' }}
+                    >
+                      🌐 Abrir Link no Mercado Livre ↗
+                    </a>
+                  )}
+                </div>
+                <input
+                  type="url"
+                  className="admin-input"
+                  placeholder="https://www.mercadolivre.com.br/ofertas?container_id=MLB779362-1&page=1"
+                  value={mlData.scrapingUrl || ''}
+                  onChange={(e) => setMlData({ ...mlData, scrapingUrl: e.target.value })}
+                  style={{ fontSize: '0.92rem', padding: '12px 14px' }}
+                />
+                <p className="admin-help-text" style={{ color: '#cbd5e1', marginTop: '8px', lineHeight: '1.5' }}>
+                  💡 <strong>Quer trocar o que o robô dispara?</strong> Abra o Mercado Livre no seu navegador, navegue até a categoria desejada (ex: Celulares, Eletrodomésticos, Ferramentas, etc.), copie o link da barra de endereço e cole aqui. Ao clicar em <strong>Salvar</strong>, o robô passará a extrair ofertas desse novo link!
+                </p>
+              </div>
+
               <div className="admin-form-group">
                 <label className="admin-label">
                   String de Cookies Completa (cookie)

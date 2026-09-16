@@ -29,13 +29,14 @@ model Deal {
 }
 
 model CookiesConfig {
-  id         Int      @id @default(autoincrement())
-  platform   String   @unique
-  cookie     String   @db.Text
-  userAgent  String   @map("user_agent") @db.Text
-  xCsrfToken String?  @map("x_csrf_token") @db.Text
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id          Int      @id @default(autoincrement())
+  platform    String   @unique
+  cookie      String   @db.Text
+  userAgent   String   @map("user_agent") @db.Text
+  xCsrfToken  String?  @map("x_csrf_token") @db.Text
+  scrapingUrl String?  @default("https://www.mercadolivre.com.br/ofertas?container_id=MLB779362-1&page=1") @map("scraping_url") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("cookies_config")
 }
@@ -78,6 +79,7 @@ model Coupon {
 
   @@map("cupons")
 }
+
 
 
 
