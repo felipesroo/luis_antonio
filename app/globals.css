@@ -412,6 +412,143 @@ a {
   }
 }
 
+/* ==================== TICKET DE CUPOM NO FINAL DA OFERTA ==================== */
+.deal-coupon-ticket {
+  position: relative;
+  background: linear-gradient(135deg, rgba(255, 107, 0, 0.08), rgba(255, 184, 0, 0.05));
+  border: 1.5px dashed rgba(255, 107, 0, 0.45);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.deal-coupon-ticket:hover {
+  background: linear-gradient(135deg, rgba(255, 107, 0, 0.14), rgba(255, 184, 0, 0.09));
+  border-color: #ff6b00;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(255, 107, 0, 0.18);
+}
+
+.coupon-ticket-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.coupon-ticket-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  animation: pulseIcon 3s infinite ease-in-out;
+}
+
+@keyframes pulseIcon {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.coupon-ticket-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.coupon-ticket-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.coupon-code-pill {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: #d9480f;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 107, 0, 0.3);
+  letter-spacing: 0.04em;
+}
+
+.coupon-discount-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #ff6b00, #fa5252);
+  color: #ffffff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+.coupon-rule-text {
+  font-size: 0.72rem;
+  color: #6c757d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.coupon-copy-btn {
+  background: #ff6b00;
+  color: #ffffff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(255, 107, 0, 0.3);
+}
+
+.coupon-copy-btn:hover {
+  background: #e8590c;
+  transform: scale(1.04);
+}
+
+.coupon-copy-btn.copied {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+  animation: copyFlash 0.3s ease;
+}
+
+@keyframes copyFlash {
+  0% { transform: scale(0.9); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-color-scheme: dark) {
+  .deal-coupon-ticket {
+    background: linear-gradient(135deg, rgba(255, 107, 0, 0.12), rgba(255, 184, 0, 0.06));
+    border-color: rgba(255, 146, 43, 0.5);
+  }
+  .coupon-code-pill {
+    background: rgba(15, 23, 42, 0.85);
+    color: #ff922b;
+    border-color: rgba(255, 146, 43, 0.35);
+  }
+  .coupon-rule-text {
+    color: #94a3b8;
+  }
+}
+
 .deal-prices {
   margin-top: auto;
   margin-bottom: 1rem;

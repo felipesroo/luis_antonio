@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import DealCard from './DealCard';
 
-export default function DealsExplorer({ initialDeals, isFallback }) {
+export default function DealsExplorer({ initialDeals, isFallback, coupons = [] }) {
   const [search, setSearch] = useState('');
   const [selectedStore, setSelectedStore] = useState('all');
   const [filter30Off, setFilter30Off] = useState(false);
@@ -145,52 +146,7 @@ export default function DealsExplorer({ initialDeals, isFallback }) {
       ) : (
         <div className="deals-grid">
           {filteredDeals.map(deal => (
-            <div key={deal.id} className="deal-card">
-              <div className="deal-image-container">
-                <div className={`deal-store-badge ${deal.store === 'Shopee' ? 'store-shopee' : 'store-ml'}`}>
-                  {deal.store || 'Mercado Livre'}
-                </div>
-                {deal.discount && (
-                  <div className="deal-discount-badge">{deal.discount} OFF</div>
-                )}
-                {deal.imageUrl ? (
-                  <img src={deal.imageUrl} alt={deal.title} className="deal-image" loading="lazy" />
-                ) : (
-                  <div className="deal-image" style={{ backgroundColor: '#f1f5f9' }}></div>
-                )}
-              </div>
-
-              <div className="deal-content">
-                <h3 className="deal-title" title={deal.title}>{deal.title}</h3>
-
-                {deal.content && deal.content.length < 60 && (
-                  <div className="deal-coupon">
-                    <span>🎟️</span>
-                    <span>{deal.content}</span>
-                  </div>
-                )}
-
-                <div className="deal-prices">
-                  {deal.originalPrice && (
-                    <span className="deal-price-old">De: R$ {deal.originalPrice.toFixed(2).replace('.', ',')}</span>
-                  )}
-                  {deal.discountPrice && (
-                    <span className="deal-price-new">Por: R$ {deal.discountPrice.toFixed(2).replace('.', ',')}</span>
-                  )}
-                </div>
-
-                <div className="deal-buttons">
-                  <a href={`/go/${deal.id}`} target="_blank" rel="noopener noreferrer" className="deal-button">
-                    <span>Ver Oferta</span>
-                    <span>🛒</span>
-                  </a>
-                  <a href="https://chat.whatsapp.com/K4PWG5Z8uYZLQYDWbQo7ig?mode=ac_t" target="_blank" rel="noopener noreferrer" className="deal-button-whatsapp">
-                    <span>Grupo VIP WhatsApp</span>
-                    <span>💬</span>
-                  </a>
-                </div>
-              </div>
-            </div>
+            <DealCard key={deal.id} deal={deal} coupons={coupons} />
           ))}
         </div>
       )}

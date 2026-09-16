@@ -58,6 +58,21 @@ export default function AdminDashboard() {
   const [totalClicks, setTotalClicks] = useState(0);
   const [loadingDeals, setLoadingDeals] = useState(false);
 
+  // 8. Cupons de Desconto
+  const [coupons, setCoupons] = useState([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(false);
+  const [editingCouponId, setEditingCouponId] = useState(null);
+  const [couponForm, setCouponForm] = useState({
+    code: '',
+    discount: '',
+    description: '',
+    store: 'Todas',
+    dealId: '',
+    active: true,
+    priority: 0
+  });
+  const [savingCoupon, setSavingCoupon] = useState(false);
+
   // Helper para requisições autenticadas com suporte a Token Bearer e Cookies
   function adminFetch(url, options = {}) {
     const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
@@ -101,6 +116,7 @@ export default function AdminDashboard() {
     loadN8n();
     loadSiteConfigs();
     loadDeals();
+    loadCoupons();
   }
 
   // === MÓDULO MERCADO LIVRE ===
@@ -499,6 +515,117 @@ export default function AdminDashboard() {
     }
   }
 
+  // === MÓDULO CUPONS DE DESCONTO ===
+  async function loadCoupons() {
+    setLoadingCoupons(true);
+    try {
+      const res = await adminFetch('/api/admin/coupons');
+      if (res.ok) {
+        const data = await res.json();
+        setCoupons(data.coupons || []);
+      }
+    } catch (e) {
+      console.error('Erro ao carregar cupons:', e);
+    } finally {
+      setLoadingCoupons(false);
+    }
+  }
+
+  function handleStartCreateCoupon() {
+    setEditingCouponId(null);
+    setCouponForm({
+      code: '',
+      discount: '',
+      description: '',
+      store: 'Todas',
+      dealId: '',
+      active: true,
+      priority: 0
+    });
+  }
+
+  function handleStartEditCoupon(coupon) {
+    setEditingCouponId(coupon.id);
+    setCouponForm({
+      code: coupon.code,
+      discount: coupon.discount,
+      description: coupon.description || '',
+      store: coupon.store || 'Todas',
+      dealId: coupon.dealId || '',
+      active: coupon.active,
+      priority: coupon.priority || 0
+    });
+    // Rola suavemente até o formulário de cupons
+    window.scrollTo({ top: 400, behavior: 'smooth' });
+  }
+
+  async function handleSaveCoupon(e) {
+    e?.preventDefault();
+    if (!couponForm.code.trim() || !couponForm.discount.trim()) {
+      showToast('Preencha o código e o desconto do cupom.', 'danger');
+      return;
+    }
+    setSavingCoupon(true);
+    try {
+      const method = editingCouponId ? 'PUT' : 'POST';
+      const body = editingCouponId ? { id: editingCouponId, ...couponForm } : couponForm;
+
+      const res = await adminFetch('/api/admin/coupons', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(editingCouponId ? 'Cupom atualizado com sucesso!' : 'Cupom criado e aplicado às ofertas!');
+        handleStartCreateCoupon();
+        loadCoupons();
+      } else {
+        showToast(data.error || 'Erro ao salvar cupom', 'danger');
+      }
+    } catch {
+      showToast('Erro de conexão ao salvar cupom', 'danger');
+    } finally {
+      setSavingCoupon(false);
+    }
+  }
+
+  async function handleToggleCoupon(id, currentActive) {
+    try {
+      const res = await adminFetch('/api/admin/coupons', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, active: !currentActive })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`Cupom ${!currentActive ? 'ATIVADO' : 'PAUSADO'}!`);
+        loadCoupons();
+      } else {
+        showToast(data.error || 'Erro ao alterar status do cupom', 'danger');
+      }
+    } catch {
+      showToast('Erro ao atualizar cupom', 'danger');
+    }
+  }
+
+  async function handleDeleteCoupon(id, code) {
+    if (!confirm(`Tem certeza que deseja excluir o cupom "${code}"?`)) return;
+    try {
+      const res = await adminFetch(`/api/admin/coupons?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`Cupom "${code}" excluído com sucesso!`);
+        setCoupons(coupons.filter(c => c.id !== id));
+        if (editingCouponId === id) handleStartCreateCoupon();
+      } else {
+        showToast(data.error || 'Erro ao excluir cupom', 'danger');
+      }
+    } catch {
+      showToast('Erro de conexão ao excluir', 'danger');
+    }
+  }
+
   async function handleLogout() {
     await adminFetch('/api/admin/auth', { method: 'DELETE' });
     router.push('/admin/login');
@@ -591,6 +718,18 @@ export default function AdminDashboard() {
               <span className="admin-metric-value">{totalClicks} cliques</span>
             </div>
           </div>
+
+          <div className="admin-metric-card">
+            <div className="admin-metric-icon" style={{ background: 'rgba(249, 115, 22, 0.15)', color: '#f97316' }}>
+              🎟️
+            </div>
+            <div className="admin-metric-info">
+              <span className="admin-metric-label">Cupons de Desconto</span>
+              <span className="admin-metric-value" style={{ fontSize: '1.1rem' }}>
+                {coupons.filter(c => c.active).length} ativos ({coupons.length} total)
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Menu de Abas */}
@@ -641,6 +780,14 @@ export default function AdminDashboard() {
           >
             <span>⚙️</span>
             <span>Configurações do Site</span>
+          </button>
+
+          <button
+            className={`admin-tab-btn ${activeTab === 'coupons' ? 'active' : ''}`}
+            onClick={() => setActiveTab('coupons')}
+          >
+            <span>🎟️</span>
+            <span>Cupons de Desconto ({coupons.length})</span>
           </button>
 
           <button
@@ -1587,6 +1734,314 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* ABA: CUPONS DE DESCONTO                                   */}
+        {/* ========================================================= */}
+        {activeTab === 'coupons' && (
+          <div className="admin-card">
+            <div className="admin-card-header">
+              <div>
+                <h2 className="admin-card-title">
+                  <span>🎟️</span> Gestão de Cupons de Desconto para as Ofertas
+                </h2>
+                <p className="admin-card-subtitle">
+                  Cadastre e altere cupons que aparecem no final de cada oferta no site. O visitante copia o código com 1 clique.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={handleStartCreateCoupon}
+                  className="admin-btn admin-btn-primary admin-btn-sm"
+                >
+                  ➕ Novo Cupom
+                </button>
+                <button
+                  type="button"
+                  onClick={loadCoupons}
+                  className="admin-btn admin-btn-secondary admin-btn-sm"
+                  disabled={loadingCoupons}
+                >
+                  🔄 Recarregar
+                </button>
+              </div>
+            </div>
+
+            {/* Formulário de Criação / Edição de Cupom */}
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.65)',
+              border: editingCouponId ? '1px solid #8b5cf6' : '1px solid var(--admin-border)',
+              borderRadius: '14px',
+              padding: '20px',
+              marginBottom: '28px',
+              boxShadow: editingCouponId ? '0 0 15px rgba(139, 92, 246, 0.2)' : 'none'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '1rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>{editingCouponId ? '✏️' : '✨'}</span>
+                  <span>{editingCouponId ? 'Editar Cupom' : 'Cadastrar Novo Cupom'}</span>
+                </h3>
+                {editingCouponId && (
+                  <span style={{ fontSize: '0.78rem', background: 'rgba(139, 92, 246, 0.2)', color: '#c4b5fd', padding: '2px 8px', borderRadius: '4px' }}>
+                    Editando ID: {editingCouponId.slice(0, 8)}...
+                  </span>
+                )}
+              </div>
+
+              <form onSubmit={handleSaveCoupon}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                  <div className="admin-form-group" style={{ marginBottom: 0 }}>
+                    <label className="admin-label">Código do Cupom *</label>
+                    <input
+                      type="text"
+                      className="admin-input"
+                      placeholder="Ex: CUPOM10, SHOPEE20"
+                      value={couponForm.code}
+                      onChange={(e) => setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })}
+                      required
+                    />
+                    <p className="admin-help-text">O código exato que o comprador irá copiar.</p>
+                  </div>
+
+                  <div className="admin-form-group" style={{ marginBottom: 0 }}>
+                    <label className="admin-label">Destaque de Desconto *</label>
+                    <input
+                      type="text"
+                      className="admin-input"
+                      placeholder="Ex: 10% OFF, R$ 20 OFF"
+                      value={couponForm.discount}
+                      onChange={(e) => setCouponForm({ ...couponForm, discount: e.target.value })}
+                      required
+                    />
+                    <p className="admin-help-text">Texto chamativo exibido na tag de desconto.</p>
+                  </div>
+
+                  <div className="admin-form-group" style={{ marginBottom: 0 }}>
+                    <label className="admin-label">Loja de Aplicação</label>
+                    <select
+                      className="admin-select"
+                      value={couponForm.store}
+                      onChange={(e) => setCouponForm({ ...couponForm, store: e.target.value })}
+                    >
+                      <option value="Todas">🔥 Todas as Lojas (Geral)</option>
+                      <option value="Mercado Livre">💛 Mercado Livre</option>
+                      <option value="Shopee">🧡 Shopee</option>
+                      <option value="Oferta Específica">🎯 Oferta Específica</option>
+                    </select>
+                    <p className="admin-help-text">Onde este cupom aparecerá no site.</p>
+                  </div>
+                </div>
+
+                {/* Seletor se for cupom para Oferta Específica */}
+                {couponForm.store === 'Oferta Específica' && (
+                  <div className="admin-form-group" style={{ marginBottom: '16px' }}>
+                    <label className="admin-label">Selecione a Oferta Específica</label>
+                    <select
+                      className="admin-select"
+                      value={couponForm.dealId}
+                      onChange={(e) => setCouponForm({ ...couponForm, dealId: e.target.value })}
+                      required
+                    >
+                      <option value="">-- Escolha um produto da lista ({deals.length} disponíveis) --</option>
+                      {deals.map(d => (
+                        <option key={d.id} value={d.id}>
+                          [{d.store || 'Geral'}] {d.title.slice(0, 60)}... (R$ {d.discountPrice?.toFixed(2) || '0.00'})
+                        </option>
+                      ))}
+                    </select>
+                    <p className="admin-help-text">O cupom será exibido exclusivamente no card desta oferta selecionada.</p>
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                  <div className="admin-form-group" style={{ marginBottom: 0 }}>
+                    <label className="admin-label">Regra / Descrição Rápida (Opcional)</label>
+                    <input
+                      type="text"
+                      className="admin-input"
+                      placeholder="Ex: Em compras acima de R$ 99, Válido no App"
+                      value={couponForm.description}
+                      onChange={(e) => setCouponForm({ ...couponForm, description: e.target.value })}
+                    />
+                    <p className="admin-help-text">Condições simples de uso para o comprador.</p>
+                  </div>
+
+                  <div className="admin-form-group" style={{ marginBottom: 0 }}>
+                    <label className="admin-label">Prioridade de Exibição</label>
+                    <input
+                      type="number"
+                      className="admin-input"
+                      placeholder="0"
+                      value={couponForm.priority}
+                      onChange={(e) => setCouponForm({ ...couponForm, priority: e.target.value })}
+                    />
+                    <p className="admin-help-text">Valores maiores (ex: 10) têm preferência caso haja múltiplos cupons.</p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
+                  <input
+                    type="checkbox"
+                    id="coupon-active-toggle"
+                    checked={couponForm.active}
+                    onChange={(e) => setCouponForm({ ...couponForm, active: e.target.checked })}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#10b981' }}
+                  />
+                  <label htmlFor="coupon-active-toggle" style={{ fontSize: '0.88rem', color: '#e2e8f0', cursor: 'pointer', fontWeight: '500' }}>
+                    Ativar cupom imediatamente nas ofertas do site
+                  </label>
+                </div>
+
+                {/* Prévia ao Vivo de como ficará na Oferta */}
+                <div style={{
+                  background: 'rgba(10, 15, 28, 0.7)',
+                  border: '1px dashed rgba(255, 255, 255, 0.12)',
+                  borderRadius: '10px',
+                  padding: '14px 16px',
+                  marginBottom: '20px'
+                }}>
+                  <span style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '8px', fontWeight: '600' }}>
+                    👀 PRÉ-VISUALIZAÇÃO NO FINAL DA OFERTA:
+                  </span>
+                  <div className="deal-coupon-ticket" style={{ maxWidth: '400px', margin: 0 }}>
+                    <div className="coupon-ticket-body">
+                      <div className="coupon-ticket-icon">🎟️</div>
+                      <div className="coupon-ticket-info">
+                        <div className="coupon-ticket-header">
+                          <span className="coupon-code-pill">{couponForm.code || 'CUPOMEXEMPLO'}</span>
+                          <span className="coupon-discount-tag">{couponForm.discount || '10% OFF'}</span>
+                        </div>
+                        {couponForm.description && (
+                          <span className="coupon-rule-text">{couponForm.description}</span>
+                        )}
+                      </div>
+                    </div>
+                    <button type="button" className="coupon-copy-btn">Copiar</button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="submit"
+                    className="admin-btn admin-btn-success"
+                    disabled={savingCoupon}
+                  >
+                    {savingCoupon ? 'Salvando...' : (editingCouponId ? '💾 Atualizar Cupom' : '💾 Salvar e Ativar Cupom')}
+                  </button>
+                  {editingCouponId && (
+                    <button
+                      type="button"
+                      onClick={handleStartCreateCoupon}
+                      className="admin-btn admin-btn-secondary"
+                    >
+                      Cancelar Edição
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            {/* Listagem de Cupons Cadastrados */}
+            <div className="admin-table-wrapper">
+              <h3 style={{ fontSize: '1rem', color: '#ffffff', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>📋</span>
+                <span>Cupons Cadastrados ({coupons.length})</span>
+              </h3>
+
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>Código</th>
+                    <th>Desconto</th>
+                    <th>Loja / Aplicação</th>
+                    <th>Regra / Descrição</th>
+                    <th>Prioridade</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {coupons.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                        Nenhum cupom cadastrado ainda. Use o formulário acima para adicionar seu primeiro cupom!
+                      </td>
+                    </tr>
+                  ) : (
+                    coupons.map((c) => (
+                      <tr key={c.id}>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCoupon(c.id, c.active)}
+                            className={`admin-badge ${c.active ? 'admin-badge-success' : 'admin-badge-danger'}`}
+                            style={{ cursor: 'pointer', border: 'none' }}
+                            title="Clique para alternar o status deste cupom"
+                          >
+                            <span className={`admin-dot ${c.active ? 'admin-dot-pulse' : ''}`} style={{
+                              background: c.active ? '#10b981' : '#f43f5e'
+                            }}></span>
+                            {c.active ? 'Ativo no Site' : 'Pausado'}
+                          </button>
+                        </td>
+                        <td>
+                          <span className="coupon-code-pill" style={{ display: 'inline-block' }}>
+                            {c.code}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="coupon-discount-tag" style={{ display: 'inline-block' }}>
+                            {c.discount}
+                          </span>
+                        </td>
+                        <td>
+                          <span style={{
+                            background: c.store === 'Shopee' ? 'rgba(249, 115, 22, 0.15)' : c.store === 'Mercado Livre' ? 'rgba(255, 230, 0, 0.15)' : 'rgba(139, 92, 246, 0.15)',
+                            color: c.store === 'Shopee' ? '#f97316' : c.store === 'Mercado Livre' ? '#ffe600' : '#c4b5fd',
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            fontWeight: '600',
+                            fontSize: '0.78rem'
+                          }}>
+                            {c.dealId ? '🎯 Oferta Específica' : c.store || 'Todas'}
+                          </span>
+                        </td>
+                        <td style={{ maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#94a3b8', fontSize: '0.84rem' }}>
+                          {c.description || '—'}
+                        </td>
+                        <td style={{ color: '#cbd5e1', fontWeight: '600' }}>
+                          {c.priority || 0}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleStartEditCoupon(c)}
+                              className="admin-btn admin-btn-secondary admin-btn-sm"
+                              title="Editar cupom"
+                            >
+                              ✏️ Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCoupon(c.id, c.code)}
+                              className="admin-btn admin-btn-danger admin-btn-sm"
+                              title="Excluir cupom"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

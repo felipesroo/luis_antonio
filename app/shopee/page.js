@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma";
+import DealCard from "../components/DealCard";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,20 @@ export default async function ShopeePage() {
     }
   }
 
+  // Busca cupons de desconto ativos para renderizar no final das ofertas
+  let coupons = [];
+  try {
+    coupons = await prisma.coupon.findMany({
+      where: { active: true },
+      orderBy: [
+        { priority: 'desc' },
+        { createdAt: 'desc' }
+      ]
+    });
+  } catch (e) {
+    // Fallback gracioso
+  }
+
   return (
     <div>
       <div className="section-header">
@@ -67,50 +82,7 @@ export default async function ShopeePage() {
       ) : (
         <div className="deals-grid">
           {deals.map(deal => (
-            <div key={deal.id} className="deal-card">
-              <div className="deal-image-container">
-                <div className="deal-store-badge store-shopee">Shopee</div>
-                {deal.discount && (
-                  <div className="deal-discount-badge">{deal.discount} OFF</div>
-                )}
-                {deal.imageUrl ? (
-                  <img src={deal.imageUrl} alt={deal.title} className="deal-image" loading="lazy" />
-                ) : (
-                  <div className="deal-image" style={{backgroundColor: '#f1f5f9'}}></div>
-                )}
-              </div>
-              
-              <div className="deal-content">
-                <h3 className="deal-title" title={deal.title}>{deal.title}</h3>
-                
-                {deal.content && deal.content.length < 60 && (
-                  <div className="deal-coupon">
-                    <span>🎟️</span>
-                    <span>{deal.content}</span>
-                  </div>
-                )}
-
-                <div className="deal-prices">
-                  {deal.originalPrice && (
-                    <span className="deal-price-old">De: R$ {deal.originalPrice.toFixed(2).replace('.', ',')}</span>
-                  )}
-                  {deal.discountPrice && (
-                    <span className="deal-price-new">Por: R$ {deal.discountPrice.toFixed(2).replace('.', ',')}</span>
-                  )}
-                </div>
-
-                <div className="deal-buttons">
-                  <a href={`/go/${deal.id}`} target="_blank" rel="noopener noreferrer" className="deal-button">
-                    <span>Comprar na Shopee</span>
-                    <span>🛒</span>
-                  </a>
-                  <a href="https://chat.whatsapp.com/K4PWG5Z8uYZLQYDWbQo7ig?mode=ac_t" target="_blank" rel="noopener noreferrer" className="deal-button-whatsapp">
-                    <span>Grupo VIP WhatsApp</span>
-                    <span>💬</span>
-                  </a>
-                </div>
-              </div>
-            </div>
+            <DealCard key={deal.id} deal={deal} coupons={coupons} />
           ))}
         </div>
       )}

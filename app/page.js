@@ -38,7 +38,21 @@ export default async function Home() {
     }
   }
 
+  // Busca cupons de desconto ativos para renderizar no final das ofertas
+  let coupons = [];
+  try {
+    coupons = await prisma.coupon.findMany({
+      where: { active: true },
+      orderBy: [
+        { priority: 'desc' },
+        { createdAt: 'desc' }
+      ]
+    });
+  } catch (e) {
+    // Fallback gracioso se a tabela ainda não tiver cupons
+  }
+
   return (
-    <DealsExplorer initialDeals={deals} isFallback={isFallback} />
+    <DealsExplorer initialDeals={deals} isFallback={isFallback} coupons={coupons} />
   );
 }

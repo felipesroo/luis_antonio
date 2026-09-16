@@ -64,4 +64,20 @@ model ProdutoDisparado {
   @@map("produtos_disparados")
 }
 
+model Coupon {
+  id          String    @id @default(cuid())
+  code        String    @db.VarChar(100)
+  discount    String    @db.VarChar(100)
+  description String?   @db.Text
+  store       String    @default("Todas") @db.VarChar(50) // "Todas", "Mercado Livre", "Shopee"
+  dealId      String?   @map("deal_id") @db.VarChar(255)
+  active      Boolean   @default(true)
+  priority    Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("cupons")
+}
+
+
 
