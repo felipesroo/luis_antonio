@@ -38,10 +38,20 @@ export default function AdminDashboard() {
   const [cronExpression, setCronExpression] = useState('*/15 8-22 * * *');
   const [savingCron, setSavingCron] = useState(false);
 
-  // 5. Prompts de IA
+  // 5. Prompts e Configurações de IA (Groq)
   const [promptPlatform, setPromptPlatform] = useState('ml');
   const [promptText, setPromptText] = useState('');
   const [savingPrompt, setSavingPrompt] = useState(false);
+  const [groqKey, setGroqKey] = useState('');
+  const [groqModel, setGroqModel] = useState('openai/gpt-oss-120b');
+  const [groqPopularModels, setGroqPopularModels] = useState([]);
+  const [groqMaskedKey, setGroqMaskedKey] = useState('');
+  const [groqLastUpdated, setGroqLastUpdated] = useState(null);
+  const [showGroqKeyRaw, setShowGroqKeyRaw] = useState(false);
+  const [testingGroq, setTestingGroq] = useState(false);
+  const [groqTestStatus, setGroqTestStatus] = useState(null);
+  const [savingGroq, setSavingGroq] = useState(false);
+
 
   // 6. Configurações do Site
   const [siteConfigs, setSiteConfigs] = useState({
@@ -114,6 +124,7 @@ export default function AdminDashboard() {
     loadWaha();
     loadGroups();
     loadN8n();
+    loadGroqConfig();
     loadSiteConfigs();
     loadDeals();
     loadCoupons();
@@ -448,6 +459,73 @@ export default function AdminDashboard() {
     if (text) setPromptText(text);
   }
 
+  // === MÓDULO CREDENCIAL & MODELOS GROQ ===
+  async function loadGroqConfig() {
+    try {
+      const res = await adminFetch('/api/admin/groq');
+      if (res.ok) {
+        const data = await res.json();
+        setGroqMaskedKey(data.maskedKey || '');
+        if (data.currentModel) setGroqModel(data.currentModel);
+        if (data.popularModels) setGroqPopularModels(data.popularModels);
+        setGroqLastUpdated(data.lastUpdated);
+      }
+    } catch (e) {
+      console.error('Erro ao carregar Groq config:', e);
+    }
+  }
+
+  async function handleTestGroqKey() {
+    setTestingGroq(true);
+    setGroqTestStatus(null);
+    try {
+      const res = await adminFetch('/api/admin/groq', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: groqKey || groqMaskedKey })
+      });
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        setGroqTestStatus({ valid: true, message: data.message });
+        showToast('Chave da Groq validada com sucesso na API oficial!');
+      } else {
+        setGroqTestStatus({ valid: false, message: data.error || 'Chave inválida ou não autorizada pela Groq.' });
+        showToast(data.error || 'Falha ao validar chave Groq', 'danger');
+      }
+    } catch (e) {
+      setGroqTestStatus({ valid: false, message: e.message || 'Erro de conexão ao testar chave' });
+      showToast('Erro de conexão ao testar chave', 'danger');
+    } finally {
+      setTestingGroq(false);
+    }
+  }
+
+  async function handleSaveGroq(e) {
+    e?.preventDefault();
+    setSavingGroq(true);
+    try {
+      const res = await adminFetch('/api/admin/groq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: groqKey, model: groqModel })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(data.message || 'Credencial e modelo Groq salvos no n8n!');
+        setGroqKey('');
+        setShowGroqKeyRaw(false);
+        loadGroqConfig();
+        loadN8n();
+      } else {
+        showToast(data.error || 'Erro ao salvar credencial da Groq', 'danger');
+      }
+    } catch {
+      showToast('Erro de conexão ao salvar na Groq', 'danger');
+    } finally {
+      setSavingGroq(false);
+    }
+  }
+
   // === MÓDULO CONFIGS SITE ===
   async function loadSiteConfigs() {
     try {
@@ -772,7 +850,7 @@ export default function AdminDashboard() {
             onClick={() => setActiveTab('prompts')}
           >
             <span>🧠</span>
-            <span>Editor de Prompts IA</span>
+            <span>Prompts & IA (Groq)</span>
           </button>
 
           <button
@@ -1580,107 +1658,239 @@ export default function AdminDashboard() {
         )}
 
         {/* ========================================================= */}
-        {/* ABA 5: EDITOR DE PROMPTS IA (GROQ)                       */}
+        {/* ABA 5: PROMPTS E INTELIGÊNCIA ARTIFICIAL (GROQ)           */}
         {/* ========================================================= */}
         {activeTab === 'prompts' && (
-          <div className="admin-card">
-            <div className="admin-card-header">
-              <div>
-                <h2 className="admin-card-title">
-                  <span>🧠</span> Editor Visual de Prompts da IA (Groq)
-                </h2>
-                <p className="admin-card-subtitle">
-                  Altere a copy, emojis e chamada para ação geradas pela inteligência artificial para as mensagens do WhatsApp.
-                </p>
-              </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* CARD 1: GESTÃO DA CREDENCIAL E MODELO GROQ */}
+            <div className="admin-card" style={{ border: '1px solid rgba(139, 92, 246, 0.4)', background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 27, 75, 0.4))' }}>
+              <div className="admin-card-header">
+                <div>
+                  <h2 className="admin-card-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span>🔑</span> Credencial & Modelo da Groq API (IA Central dos Robôs)
+                  </h2>
+                  <p className="admin-card-subtitle">
+                    Atualize a chave de API da Groq e o modelo utilizado pelos fluxos da Shopee e Mercado Livre diretamente por aqui sem abrir o n8n.
+                  </p>
+                </div>
 
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => handleChangePromptTab('ml')}
-                  className={`admin-btn admin-btn-sm ${promptPlatform === 'ml' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
-                >
-                  💛 Mercado Livre
-                </button>
-                <button
-                  onClick={() => handleChangePromptTab('shopee')}
-                  className={`admin-btn admin-btn-sm ${promptPlatform === 'shopee' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
-                >
-                  🧡 Shopee
-                </button>
-              </div>
-            </div>
-
-            {/* Modelos Prontos */}
-            <div style={{ marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: '600' }}>Modelos Rápidos:</span>
-              <button
-                type="button"
-                onClick={() => handleApplyPromptPreset('urgente')}
-                className="admin-btn admin-btn-secondary admin-btn-sm"
-              >
-                🔥 Super Urgência com Emojis
-              </button>
-              <button
-                type="button"
-                onClick={() => handleApplyPromptPreset('direto')}
-                className="admin-btn admin-btn-secondary admin-btn-sm"
-              >
-                ⚡ Direto & Minimalista
-              </button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '24px' }}>
-              {/* Editor de Código */}
-              <div>
-                <label className="admin-label">
-                  Prompt do Sistema ({promptPlatform === 'ml' ? 'Mercado Livre' : 'Shopee'})
-                </label>
-                <textarea
-                  rows="15"
-                  className="admin-textarea"
-                  value={promptText}
-                  onChange={(e) => setPromptText(e.target.value)}
-                  placeholder="Escreva as instruções para a IA..."
-                />
-                <p className="admin-help-text">
-                  Variáveis suportadas: <code>&#123;&#123; $json.name &#125;&#125;</code>, <code>&#123;&#123; $json.actual_price &#125;&#125;</code>, <code>&#123;&#123; $json.short_url &#125;&#125;</code>
-                </p>
-
-                <div style={{ marginTop: '16px' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <a
+                    href="https://console.groq.com/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="admin-btn admin-btn-secondary admin-btn-sm"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    ↗️ Obter Chave na Groq Cloud
+                  </a>
                   <button
                     type="button"
-                    onClick={handleSavePrompt}
-                    className="admin-btn admin-btn-success"
-                    disabled={savingPrompt}
+                    onClick={handleTestGroqKey}
+                    className="admin-btn admin-btn-primary admin-btn-sm"
+                    disabled={testingGroq}
                   >
-                    {savingPrompt ? 'Salvando no n8n...' : `💾 Salvar Prompt de ${promptPlatform.toUpperCase()}`}
+                    {testingGroq ? 'Testando na Groq...' : '🧪 Testar Chave Agora'}
                   </button>
                 </div>
               </div>
 
-              {/* Preview da Mensagem */}
-              <div>
-                <label className="admin-label">Simulação Visual (Como fica no WhatsApp)</label>
-                <div className="admin-wa-preview">
-                  <div className="admin-wa-bubble">
-                    {promptText ? (
-                      promptText
-                        .replace(/^=/, '')
-                        .replace(/Atue como.*?\n\n/is, '')
-                        .replace(/--- MODELO ---\n/is, '')
-                        .replace(/\{\{ \$json\.name \|\| \$json\.productName \}\}/g, 'Fone de Ouvido Bluetooth TWS Pro')
-                        .replace(/\{\{ \$json\.actual_price \|\| \$json\.price \}\}/g, '89,90')
-                        .replace(/\{\{ \$json\.original_price \|\| \$json\.price \}\}/g, '189,90')
-                        .replace(/\{\{ \$json\.discount \|\| \$json\.priceDiscountRate \+ '%' \}\}/g, '52% OFF')
-                        .replace(/\{\{ \$json\.short_url \|\| \$json\.shortLink \}\}/g, 'https://mercadolivre.com/sec/xyz123')
-                    ) : (
-                      'Nenhum prompt carregado.'
-                    )}
+              {/* Status do Teste */}
+              {groqTestStatus && (
+                <div style={{
+                  background: groqTestStatus.valid ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+                  border: `1px solid ${groqTestStatus.valid ? 'rgba(16, 185, 129, 0.4)' : 'rgba(244, 63, 94, 0.4)'}`,
+                  color: groqTestStatus.valid ? '#6ee7b7' : '#fda4af',
+                  padding: '12px 18px',
+                  borderRadius: '8px',
+                  marginBottom: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <span style={{ fontSize: '20px' }}>{groqTestStatus.valid ? '✅' : '❌'}</span>
+                  <div>
+                    <strong>{groqTestStatus.valid ? 'Validação Groq Aprovada:' : 'Falha na Validação:'}</strong> {groqTestStatus.message}
                   </div>
                 </div>
-                <p className="admin-help-text" style={{ marginTop: '10px' }}>
-                  A IA gerará a mensagem seguindo exatamente a estrutura e emojis configurados.
-                </p>
+              )}
+
+              <form onSubmit={handleSaveGroq}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+                  {/* Input da Chave Groq */}
+                  <div className="admin-form-group" style={{ marginBottom: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <label className="admin-label" style={{ marginBottom: 0 }}>
+                        Chave de API (Groq API Key)
+                      </label>
+                      <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                        Atual: <code style={{ color: '#c4b5fd' }}>{groqMaskedKey || 'gsk_...'}</code>
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type={showGroqKeyRaw ? 'text' : 'password'}
+                        className="admin-input"
+                        placeholder="gsk_..."
+                        value={groqKey}
+                        onChange={(e) => setGroqKey(e.target.value)}
+                        style={{ fontFamily: 'monospace' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowGroqKeyRaw(!showGroqKeyRaw)}
+                        className="admin-btn admin-btn-secondary admin-btn-sm"
+                        title={showGroqKeyRaw ? 'Ocultar chave' : 'Mostrar chave'}
+                        style={{ minWidth: '42px', padding: '0 12px' }}
+                      >
+                        {showGroqKeyRaw ? '🙈' : '👁️'}
+                      </button>
+                    </div>
+                    <p className="admin-help-text" style={{ marginTop: '6px' }}>
+                      Deixe em branco para manter a chave atual. Se preenchido, a nova chave será testada e sincronizada com o n8n.
+                    </p>
+                  </div>
+
+                  {/* Seletor de Modelo Groq */}
+                  <div className="admin-form-group" style={{ marginBottom: 0 }}>
+                    <label className="admin-label">
+                      Modelo de IA (Groq Chat Model)
+                    </label>
+                    <select
+                      className="admin-select"
+                      value={groqModel}
+                      onChange={(e) => setGroqModel(e.target.value)}
+                    >
+                      <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (Padrão de Alto Desempenho)</option>
+                      <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile (Recomendado - Meta Llama 3.3)</option>
+                      <option value="llama-3.1-8b-instant">llama-3.1-8b-instant (Ultra Rápido & Econômico)</option>
+                      <option value="llama-3.1-70b-versatile">llama-3.1-70b-versatile</option>
+                      <option value="mixtral-8x7b-32768">mixtral-8x7b-32768</option>
+                      <option value="gemma2-9b-it">gemma2-9b-it</option>
+                    </select>
+                    <p className="admin-help-text" style={{ marginTop: '6px' }}>
+                      O modelo selecionado será atualizado nos nós da Shopee e do Mercado Livre no n8n.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    type="submit"
+                    className="admin-btn admin-btn-success"
+                    disabled={savingGroq}
+                    style={{ padding: '10px 24px' }}
+                  >
+                    {savingGroq ? 'Salvando e Sincronizando...' : '💾 Salvar e Atualizar Robôs n8n'}
+                  </button>
+                  <span style={{ color: '#94a3b8', fontSize: '0.82rem' }}>
+                    {groqLastUpdated ? `Última sincronização: ${new Date(groqLastUpdated).toLocaleString('pt-BR')}` : 'Sincronização instantânea com a credencial riiy9XqI7uqQmwML'}
+                  </span>
+                </div>
+              </form>
+            </div>
+
+            {/* CARD 2: EDITOR VISUAL DE PROMPTS */}
+            <div className="admin-card">
+              <div className="admin-card-header">
+                <div>
+                  <h2 className="admin-card-title">
+                    <span>🧠</span> Editor Visual de Prompts da IA
+                  </h2>
+                  <p className="admin-card-subtitle">
+                    Altere a copy, emojis e chamada para ação geradas pela inteligência artificial para as mensagens do WhatsApp.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => handleChangePromptTab('ml')}
+                    className={`admin-btn admin-btn-sm ${promptPlatform === 'ml' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
+                  >
+                    💛 Mercado Livre
+                  </button>
+                  <button
+                    onClick={() => handleChangePromptTab('shopee')}
+                    className={`admin-btn admin-btn-sm ${promptPlatform === 'shopee' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
+                  >
+                    🧡 Shopee
+                  </button>
+                </div>
+              </div>
+
+              {/* Modelos Prontos */}
+              <div style={{ marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: '600' }}>Modelos Rápidos:</span>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPromptPreset('urgente')}
+                  className="admin-btn admin-btn-secondary admin-btn-sm"
+                >
+                  🔥 Super Urgência com Emojis
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPromptPreset('direto')}
+                  className="admin-btn admin-btn-secondary admin-btn-sm"
+                >
+                  ⚡ Direto & Minimalista
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '24px' }}>
+                {/* Editor de Código */}
+                <div>
+                  <label className="admin-label">
+                    Prompt do Sistema ({promptPlatform === 'ml' ? 'Mercado Livre' : 'Shopee'})
+                  </label>
+                  <textarea
+                    rows="15"
+                    className="admin-textarea"
+                    value={promptText}
+                    onChange={(e) => setPromptText(e.target.value)}
+                    placeholder="Escreva as instruções para a IA..."
+                  />
+                  <p className="admin-help-text">
+                    Variáveis suportadas: <code>&#123;&#123; $json.name &#125;&#125;</code>, <code>&#123;&#123; $json.actual_price &#125;&#125;</code>, <code>&#123;&#123; $json.short_url &#125;&#125;</code>
+                  </p>
+
+                  <div style={{ marginTop: '16px' }}>
+                    <button
+                      type="button"
+                      onClick={handleSavePrompt}
+                      className="admin-btn admin-btn-success"
+                      disabled={savingPrompt}
+                    >
+                      {savingPrompt ? 'Salvando no n8n...' : `💾 Salvar Prompt de ${promptPlatform.toUpperCase()}`}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Preview da Mensagem */}
+                <div>
+                  <label className="admin-label">Simulação Visual (Como fica no WhatsApp)</label>
+                  <div className="admin-wa-preview">
+                    <div className="admin-wa-bubble">
+                      {promptText ? (
+                        promptText
+                          .replace(/^=/, '')
+                          .replace(/Atue como.*?\n\n/is, '')
+                          .replace(/--- MODELO ---\n/is, '')
+                          .replace(/\{\{ \$json\.name \|\| \$json\.productName \}\}/g, 'Fone de Ouvido Bluetooth TWS Pro')
+                          .replace(/\{\{ \$json\.actual_price \|\| \$json\.price \}\}/g, '89,90')
+                          .replace(/\{\{ \$json\.original_price \|\| \$json\.price \}\}/g, '189,90')
+                          .replace(/\{\{ \$json\.discount \|\| \$json\.priceDiscountRate \+ '%' \}\}/g, '52% OFF')
+                          .replace(/\{\{ \$json\.short_url \|\| \$json\.shortLink \}\}/g, 'https://mercadolivre.com/sec/xyz123')
+                      ) : (
+                        'Nenhum prompt carregado.'
+                      )}
+                    </div>
+                  </div>
+                  <p className="admin-help-text" style={{ marginTop: '10px' }}>
+                    A IA gerará a mensagem seguindo exatamente a estrutura e emojis configurados.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
