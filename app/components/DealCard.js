@@ -109,7 +109,7 @@ export default function DealCard({ deal, coupons = [] }) {
             <span>{isShopee ? 'Comprar na Shopee' : isMl ? 'Comprar no Mercado Livre' : 'Ver Oferta'}</span>
             <span>🛒</span>
           </a>
-          <a href="https://chat.whatsapp.com/K4PWG5Z8uYZLQYDWbQo7ig?mode=ac_t" target="_blank" rel="noopener noreferrer" className="deal-button-whatsapp">
+          <a href="https://chat.whatsapp.com/FySrIA5TS9F0EK2sjY93qe" target="_blank" rel="noopener noreferrer" className="deal-button-whatsapp">
             <span>Grupo VIP WhatsApp</span>
             <span>💬</span>
           </a>

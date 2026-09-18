@@ -16,7 +16,7 @@ export const metadata = {
 };
 
 export default async function RootLayout({ children }) {
-  let whatsappVipLink = "https://chat.whatsapp.com/K4PWG5Z8uYZLQYDWbQo7ig?mode=ac_t";
+  let whatsappVipLink = "https://chat.whatsapp.com/FySrIA5TS9F0EK2sjY93qe";
   let bannerText = "";
   let bannerActive = false;
 

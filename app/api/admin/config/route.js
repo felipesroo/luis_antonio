@@ -5,7 +5,7 @@ import { isAuthenticatedAdmin } from '../../../../lib/adminAuth';
 export const dynamic = 'force-dynamic';
 
 const DEFAULT_CONFIGS = {
-  whatsapp_vip_link: 'https://chat.whatsapp.com/K4PWG5Z8uYZLQYDWbQo7ig?mode=ac_t',
+  whatsapp_vip_link: 'https://chat.whatsapp.com/FySrIA5TS9F0EK2sjY93qe',
   site_banner_text: '🔥 Entre no nosso Grupo VIP no WhatsApp e receba os achadinhos em primeira mão!',
   site_banner_active: 'true',
   site_title: 'ofertasTOP.shop',
